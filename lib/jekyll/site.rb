@@ -2,7 +2,7 @@ module Jekyll
 
   class Site
     attr_accessor :config, :layouts, :posts, :pages, :static_files, :categories, :exclude,
-                  :source, :dest, :lsi, :pygments, :permalink_style, :tags
+                  :source, :dest, :lsi, :pygments, :permalink_style, :redirect_permalinks, :tags
 
     # Initialize the site
     #   +config+ is a Hash containing site configurations details
@@ -11,12 +11,14 @@ module Jekyll
     def initialize(config)
       self.config          = config.clone
 
-      self.source          = File.expand_path(config['source'])
-      self.dest            = config['destination']
-      self.lsi             = config['lsi']
-      self.pygments        = config['pygments']
-      self.permalink_style = config['permalink'].to_sym
-      self.exclude         = config['exclude'] || []
+      self.source              = File.expand_path(config['source'])
+      self.dest                = config['destination']
+      self.lsi                 = config['lsi']
+      self.pygments            = config['pygments']
+      self.permalink_style     = config['permalink'].to_sym
+      p(config)
+      self.redirect_permalinks = config['redirect_permalinks']
+      self.exclude             = config['exclude'] || []
 
       self.reset
       self.setup

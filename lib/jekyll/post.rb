@@ -86,7 +86,8 @@ module Jekyll
     # e.g. "/2008/11/05/" if the permalink style is :date, otherwise nothing
     #
     # Returns <String>
-    def dir
+    def dir(url=nil)
+      url ||= self.url
       File.dirname(url)
     end
 
@@ -99,8 +100,9 @@ module Jekyll
       self.data && self.data['permalink']
     end
 
-    def template
-      case self.site.permalink_style
+    def template(permalink_style=nil)
+      permalink_style ||= self.site.permalink_style
+      case permalink_style
       when :pretty
         "/:categories/:year/:month/:day/:title/"
       when :none
@@ -108,7 +110,7 @@ module Jekyll
       when :date
         "/:categories/:year/:month/:day/:title.html"
       else
-        self.site.permalink_style.to_s
+        permalink_style.to_s
       end
     end
 
@@ -116,10 +118,15 @@ module Jekyll
     # e.g. /2008/11/05/my-awesome-post.html
     #
     # Returns <String>
-    def url
-      return permalink if permalink
+    def url(permalink_style=nil)
+      # puts("pemalink_style: ")
+      # p(permalink_style)
+      return permalink if permalink && !permalink_style
 
-      @url ||= {
+      template = self.template(permalink_style)
+      # puts("template: "+template)
+
+      ret = {
         "year"       => date.strftime("%Y"),
         "month"      => date.strftime("%m"),
         "day"        => date.strftime("%d"),
@@ -128,6 +135,8 @@ module Jekyll
       }.inject(template) { |result, token|
         result.gsub(/:#{token.first}/, token.last)
       }.gsub(/\/\//, "/")
+      # puts(ret)
+      return ret
     end
 
     # The UID for this post (useful in feeds)
@@ -182,18 +191,39 @@ module Jekyll
     #
     # Returns nothing
     def write(dest)
+      self.site.redirect_permalinks.each do |redir|
+        # puts(redir)
+        redir_url = self.url(redir.to_sym)
+        # puts(redir_url)
+        content = <<END
+<!DOCTYPE html>
+<html><head>
+  <link rel="canonical" href="#{self.url}" />
+  <meta http-equiv="Refresh" content="0; url=#{self.url}">
+</head><body>
+  <p><a href="#{self.url}">This post has moved</a></p>
+</body></html>
+END
+        self.writeContent(dest, redir_url, content)
+      end
+      self.writeContent(dest, self.url, self.output)
+    end
+
+    def writeContent(dest, url, content)
+      # puts("Writing to "+url)
+      dir = self.dir(url)
       FileUtils.mkdir_p(File.join(dest, dir))
 
       # The url needs to be unescaped in order to preserve the correct filename
-      path = File.join(dest, CGI.unescape(self.url))
+      path = File.join(dest, CGI.unescape(url))
 
-      if template[/\.html$/].nil?
+      if url[/\.html$/].nil?
         FileUtils.mkdir_p(path)
         path = File.join(path, "index.html")
       end
 
       File.open(path, 'w') do |f|
-        f.write(self.output)
+        f.write(content)
       end
     end
 
