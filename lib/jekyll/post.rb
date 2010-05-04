@@ -121,7 +121,7 @@ module Jekyll
     def url(permalink_style=nil)
       # puts("pemalink_style: ")
       # p(permalink_style)
-      return permalink if permalink && !permalink_style
+      # return permalink if permalink && !permalink_style
 
       template = self.template(permalink_style)
       # puts("template: "+template)
@@ -191,11 +191,19 @@ module Jekyll
     #
     # Returns nothing
     def write(dest)
-      self.site.redirect_permalinks.each do |redir|
+      redirect_links = self.site.redirect_permalinks
+      if self.template
+        redirect_links << self.template
+      end
+
+      redirect_links.each do |redir|
         # puts(redir)
         redir_url = self.url(redir.to_sym)
         # puts(redir_url)
         content = <<END
+<?php
+header('Location: #{self.url}');
+?>
 <!DOCTYPE html>
 <html><head>
   <link rel="canonical" href="#{self.url}" />
